@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espetaria do Chef</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+
+        <!-- ===== SIDEBAR ===== -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="avatar avatar--user">VC</div>
+                <div class="sidebar-header-actions">
+                    <button class="icon-btn" title="Nova conversa" onclick="newConversation()">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                            <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" title="Menu">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-wrap">
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#667781">
+                        <path d="M15.9 14.3H15l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 4.9 1.5-1.5-4.9-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/>
+                    </svg>
+                    <input type="text" placeholder="Pesquisar ou começar nova conversa" disabled>
+                </div>
+            </div>
+
+            <div class="contacts">
+                <div class="contact active" onclick="selectContact()">
+                    <div class="avatar avatar--restaurant">EC</div>
+                    <div class="contact-body">
+                        <div class="contact-top">
+                            <span class="contact-name">Espetaria do Chef</span>
+                            <span class="contact-time" id="contact-time"></span>
+                        </div>
+                        <div class="contact-preview" id="contact-preview">Carregando...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== CHAT ===== -->
+        <div class="chat" id="chat">
+            <div class="chat-header">
+                <button class="icon-btn back-btn" onclick="showSidebar()">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                    </svg>
+                </button>
+                <div class="avatar avatar--restaurant">EC</div>
+                <div class="chat-header-info">
+                    <div class="chat-name">Espetaria do Chef</div>
+                    <div class="chat-status" id="chat-status">online</div>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="icon-btn" title="Nova conversa" onclick="newConversation()">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                            <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" title="Menu">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="messages" id="messages">
+                <div class="date-badge">HOJE</div>
+            </div>
+
+            <div class="chat-input-area" id="input-area">
+                <div class="chat-input-wrap">
+                    <button class="icon-btn emoji-btn" tabindex="-1">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="#667781">
+                            <path d="M9.153 11.603c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962zm-3.204 1.362c-.026-.307-.131 5.218 6.063 5.551 6.066-.25 6.066-5.551 6.066-5.551-6.078 1.416-12.129 0-12.129 0zm11.363 1.108s-.669 1.959-5.051 1.959c-3.505 0-5.051-1.959-5.051-1.959s1.249.922 5.051.922c3.772 0 5.051-.922 5.051-.922zM14.457 9.64c0 1.083.644 1.962 1.438 1.962.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962c-.794 0-1.438.879-1.438 1.962zM12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"/>
+                        </svg>
+                    </button>
+                    <input
+                        type="text"
+                        id="msg-input"
+                        placeholder="Digite uma mensagem"
+                        onkeydown="handleKey(event)"
+                        oninput="handleInput()"
+                        autocomplete="off"
+                    >
+                    <button class="icon-btn send-btn" id="send-btn" onclick="sendMessage()">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="#667781">
+                            <path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Order complete banner -->
+            <div class="order-banner" id="order-banner" style="display:none">
+                <span>Pedido finalizado!</span>
+                <button onclick="newConversation()">Nova conversa</button>
+            </div>
+        </div>
+
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>
