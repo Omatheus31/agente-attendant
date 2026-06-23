@@ -1,0 +1,17 @@
+# Variáveis de ambiente e credenciais
+.env
+
+# Ambientes Virtuais
+venv/
+env/
+.venv/
+
+# Arquivos cacheados do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Configurações de editores
+.vscode/
+.idea/
