@@ -13,9 +13,12 @@ initial_greeting = None
 
 def init_agent():
     global agent, initial_greeting
-    agent = EspetariaAgent()
-    initial_greeting = agent.send_message("Olá! Cheguei no restaurante.")
-
+    try:
+        agent = EspetariaAgent()
+        initial_greeting = agent.send_message("Olá! Cheguei no restaurante.")
+    except Exception as e:
+        print(f"Erro ao inicializar IA (Google pode estar sobrecarregado): {e}")
+        initial_greeting = "Desculpe, os servidores da IA estão temporariamente sobrecarregados. Por favor, envie uma mensagem para tentar conectar novamente!"
 
 init_agent()
 
@@ -37,10 +40,12 @@ def message():
     if not text:
         return jsonify({'error': 'Mensagem vazia'}), 400
 
-    response = agent.send_message(text)
-    order_complete = '"itens"' in response and '"valor_total"' in response
-
-    return jsonify({'response': response, 'order_complete': order_complete})
+    try:
+        response = agent.send_message(text)
+        order_complete = '"itens"' in response and '"valor_total"' in response
+        return jsonify({'response': response, 'order_complete': order_complete})
+    except Exception as e:
+        return jsonify({'response': 'Ops, o Google Gemini está sobrecarregado neste exato segundo (Erro 503). Tente enviar sua mensagem novamente!', 'order_complete': False})
 
 
 @app.route('/api/reset', methods=['POST'])
