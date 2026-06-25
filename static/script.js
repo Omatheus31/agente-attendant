@@ -9,6 +9,38 @@ const inputAreaEl      = document.getElementById('input-area');
 
 let isBusy = false;
 
+// ===== MARKDOWN RENDERER =====
+
+function renderMarkdown(text) {
+    // Escape HTML first
+    let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    // Bold: **text**
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic: *text* (only when not a list item at start of line)
+    html = html.replace(/(?<![*\n])\*(?!\*|[ \t])(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+    // Horizontal rule: ---
+    html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid #e0e0e0;margin:6px 0">');
+
+    // Unordered list items: lines starting with "* " or "- "
+    html = html.replace(/^[*-] (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>(\n|$))+/g, '<ul style="padding-left:16px;margin:4px 0">$&</ul>');
+
+    // Line breaks
+    html = html.replace(/\n/g, '<br>');
+
+    // Clean up <br> inside lists
+    html = html.replace(/<br>\s*(<\/?[uo]l)/g, '$1');
+    html = html.replace(/(<\/li>)<br>/g, '$1');
+
+    return html;
+}
+
 // ===== HELPERS =====
 
 function now() {
@@ -120,7 +152,11 @@ function addMessage(text, direction) {
 
     const textEl = document.createElement('div');
     textEl.className = 'msg-text';
-    textEl.textContent = text;
+    if (direction === 'in') {
+        textEl.innerHTML = renderMarkdown(text);
+    } else {
+        textEl.textContent = text;
+    }
 
     const meta = document.createElement('div');
     meta.className = 'msg-meta';

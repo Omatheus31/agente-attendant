@@ -302,9 +302,15 @@ body {
 .msg-text {
     font-size: 14.5px;
     color: #111b21;
-    line-height: 1.45;
-    white-space: pre-wrap;
+    line-height: 1.5;
+    white-space: normal;
+    word-break: break-word;
 }
+
+.msg-text ul { margin: 4px 0; padding-left: 18px; }
+.msg-text li { margin: 2px 0; }
+.msg-text strong { font-weight: 600; }
+.msg-text em { font-style: italic; }
 
 /* Message meta (time + ticks) */
 .msg-meta {
