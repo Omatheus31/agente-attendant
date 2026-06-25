@@ -447,6 +447,44 @@ body {
     color: #111b21;
 }
 
+.order-info {
+    padding: 10px 16px;
+    border-top: 1px solid #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.order-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13.5px;
+}
+
+.order-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #128C7E;
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+.order-info-label {
+    color: #667781;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.order-info-value {
+    color: #111b21;
+    font-weight: 500;
+    text-align: right;
+}
+
 .order-footer {
     padding: 8px 16px 10px;
     text-align: right;

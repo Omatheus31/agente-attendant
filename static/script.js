@@ -110,6 +110,35 @@ function addOrderCard(order) {
             <span class="order-item-sub">R$ ${item.subtotal.toFixed(2)}</span>
         </div>`).join('<hr class="order-divider">');
 
+    const isDelivery = order.tipo_pedido === 'entrega';
+    const tipoIcon  = isDelivery ? '🛵' : '🏪';
+    const tipoLabel = isDelivery ? 'Entrega' : 'Retirada no local';
+
+    const enderecoHtml = order.endereco ? `
+        <div class="order-info-row">
+            <span class="order-info-label">${isDelivery ? '📍 Endereço' : '📍 Local'}</span>
+            <span class="order-info-value">${escHtml(order.endereco)}</span>
+        </div>` : '';
+
+    const pagamentoLabel = escHtml(order.forma_pagamento || '—');
+
+    const trocoHtml = order.troco_para ? `
+        <div class="order-info-row">
+            <span class="order-info-label">💵 Troco para</span>
+            <span class="order-info-value">R$ ${Number(order.troco_para).toFixed(2)}</span>
+        </div>` : '';
+
+    const clienteHtml = order.cliente ? `
+        <div class="order-section-title">Cliente</div>
+        <div class="order-info-row">
+            <span class="order-info-label">👤 Nome</span>
+            <span class="order-info-value">${escHtml(order.cliente.nome || '—')}</span>
+        </div>
+        <div class="order-info-row">
+            <span class="order-info-label">📱 Telefone</span>
+            <span class="order-info-value">${escHtml(order.cliente.telefone || '—')}</span>
+        </div>` : '';
+
     wrap.innerHTML = `
         <div class="order-card">
             <div class="order-header">🎉 Pedido Confirmado!</div>
@@ -118,7 +147,22 @@ function addOrderCard(order) {
                 <span>Total</span>
                 <span>R$ ${order.valor_total.toFixed(2)}</span>
             </div>
-            <div class="order-footer">${time}</div>
+            <div class="order-info">
+                <div class="order-section-title">Entrega</div>
+                <div class="order-info-row">
+                    <span class="order-info-label">${tipoIcon} Tipo</span>
+                    <span class="order-info-value">${tipoLabel}</span>
+                </div>
+                ${enderecoHtml}
+                <div class="order-section-title">Pagamento</div>
+                <div class="order-info-row">
+                    <span class="order-info-label">💳 Forma</span>
+                    <span class="order-info-value">${pagamentoLabel}</span>
+                </div>
+                ${trocoHtml}
+                ${clienteHtml}
+            </div>
+            <div class="order-footer">Cadastro salvo ✓ &nbsp;·&nbsp; ${time}</div>
         </div>`;
 
     messagesEl.appendChild(wrap);
@@ -238,22 +282,14 @@ async function newConversation() {
     messagesEl.innerHTML = '<div class="date-badge">HOJE</div>';
     orderBannerEl.style.display = 'none';
     inputAreaEl.style.display   = '';
-    setStatus('conectando...');
-    updateContact('Iniciando nova conversa...', '');
-    setInputLock(true);
+    updateContact('Envie uma mensagem para começar', '');
 
     try {
-        const res  = await fetch('/api/reset', { method: 'POST' });
-        const data = await res.json();
-        setStatus('online');
-        setInputLock(false);
-        addMessage(data.response, 'in');
-        inputEl.focus();
-    } catch (_) {
-        setStatus('offline');
-        setInputLock(false);
-        addMessage('Erro de conexão. Verifique o servidor.', 'in');
-    }
+        await fetch('/api/reset', { method: 'POST' });
+    } catch (_) {}
+
+    setStatus('online');
+    inputEl.focus();
 }
 
 // ===== KEYBOARD & INPUT =====
@@ -289,28 +325,15 @@ window.addEventListener('resize', () => {
 
 // ===== INIT =====
 
-async function init() {
-    setStatus('conectando...');
-    updateContact('Carregando...', '');
-    setInputLock(true);
+function init() {
+    setStatus('online');
+    updateContact('Envie uma mensagem para começar', '');
 
-    // On mobile, start with sidebar visible
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.remove('hidden');
     }
 
-    try {
-        const res  = await fetch('/api/initial');
-        const data = await res.json();
-        setStatus('online');
-        setInputLock(false);
-        addMessage(data.response, 'in');
-        inputEl.focus();
-    } catch (_) {
-        setStatus('offline');
-        setInputLock(false);
-        addMessage('Erro ao conectar. Verifique se o servidor está rodando.', 'in');
-    }
+    inputEl.focus();
 }
 
 init();
