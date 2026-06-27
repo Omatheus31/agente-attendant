@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espetaria do Chef - Cozinha Live</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/cozinha/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="glass-header">
+            <div class="header-content">
+                <div class="brand">
+                    <span class="icon">🔥</span>
+                    <h1>Visão da Cozinha</h1>
+                </div>
+                <div class="status-badge">
+                    <span class="dot pulse"></span>
+                    <span id="status-text">Sincronizando...</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div id="pedidos-container" class="pedidos-grid">
+                <!-- Pedidos injetados dinamicamente via JS -->
+            </div>
+            
+            <div id="empty-state" class="empty-state hidden">
+                <div class="empty-icon">🍳</div>
+                <h2>A chapa está limpa!</h2>
+                <p>Nenhum pedido pendente no momento. Aguardando novos clientes...</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/cozinha/script.js"></script>
+</body>
+</html>

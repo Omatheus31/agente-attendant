@@ -8,7 +8,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.agent_service import EspetariaAgent
-from src.database import get_cliente, init_db, save_pedido
+from src.database import get_cliente, init_db, save_pedido, get_pedidos_pendentes, atualizar_status_pedido
 
 app = Flask(__name__, static_folder='static')
 
@@ -113,6 +113,32 @@ init_agent()
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
+
+
+@app.route('/cozinha')
+def cozinha():
+    return send_from_directory('static/cozinha', 'index.html')
+
+
+@app.route('/api/cozinha/pedidos')
+def cozinha_pedidos():
+    pedidos = get_pedidos_pendentes()
+    import json
+    from datetime import datetime
+    for p in pedidos:
+        if isinstance(p['detalhes_json'], str):
+            p['detalhes_json'] = json.loads(p['detalhes_json'])
+        if isinstance(p.get('criado_em'), datetime):
+            p['criado_em'] = p['criado_em'].isoformat()
+    return jsonify(pedidos)
+
+
+@app.route('/api/cozinha/pedidos/<int:pedido_id>/status', methods=['POST'])
+def atualizar_pedido(pedido_id):
+    data = request.get_json() or {}
+    status = data.get('status', 'concluido')
+    atualizar_status_pedido(pedido_id, status)
+    return jsonify({'ok': True})
 
 
 @app.route('/api/message', methods=['POST'])

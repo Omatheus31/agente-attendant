@@ -8,9 +8,9 @@ O projeto foi organizado utilizando boas práticas de modularização em Python:
 
 ```text
 agente/
-├── .env                # Arquivo com as variáveis de ambiente (A SER CRIADO POR VOCÊ)
+├── .env                # Arquivo com as variáveis de ambiente e conexão do Banco
 ├── .env.example        # Exemplo de como o arquivo .env deve ser estruturado
-├── requirements.txt    # Dependências do projeto (google-genai, python-dotenv)
+├── requirements.txt    # Dependências do projeto (google-genai, python-dotenv, flask, PyMySQL)
 ├── main.py             # Ponto de entrada principal e loop de interação no terminal
 └── src/
     ├── __init__.py     # Indica que a pasta 'src' é um módulo Python
@@ -52,17 +52,27 @@ pip install -r requirements.txt
 ```
 *(Se você ver um erro de `ModuleNotFoundError: No module named 'google'`, é porque este passo não foi executado ou a instalação foi feita fora do seu ambiente virtual ativado).*
 
-### 4. Configurar a Chave da API
-Crie um arquivo chamado **exatamente** `.env` na raiz do projeto (mesmo local do `main.py`). Abra esse arquivo e coloque a sua chave do Gemini, assim:
+### 4. Configurar o Banco de Dados e Variáveis de Ambiente
+1. Você precisará de um servidor MySQL rodando localmente (recomendamos o **Laragon**, XAMPP ou WAMP).
+2. Inicie o servidor MySQL e crie um banco de dados chamado `espetaria`.
+3. Crie um arquivo chamado **exatamente** `.env` na raiz do projeto e preencha com a sua chave do Gemini e as configurações do banco (como no `.env.example`):
 ```text
 GEMINI_API_KEY=AIzaSy...sua_chave_real_aqui...
+
+DB_HOST=127.0.0.1
+DB_USER=root
+DB_PASS=
+DB_NAME=espetaria
 ```
 
 ### 5. Rodar a Aplicação
-Execute o arquivo principal:
+O projeto agora possui uma interface Web! Execute o `app.py`:
 ```bash
-python main.py
+python app.py
 ```
+Isso iniciará o servidor Flask. Você poderá acessar:
+- **Chat do Cliente**: `http://localhost:5000/`
+- **Dashboard da Cozinha (Live)**: `http://localhost:5000/cozinha`
 
 ## Como Usar na Prática
 
