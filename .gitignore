@@ -15,3 +15,8 @@ __pycache__/
 # Configurações de editores
 .vscode/
 .idea/
+
+# Banco de dados local
+*.db
+*.sqlite
+*.sqlite3
