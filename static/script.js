@@ -7,34 +7,68 @@ const contactTimeEl    = document.getElementById('contact-time');
 const orderBannerEl    = document.getElementById('order-banner');
 const inputAreaEl      = document.getElementById('input-area');
 
-let isBusy = false;
+let isBusy     = false;
+let _restoring = false; // evita re-salvar no localStorage durante replay
+
+// ===== PERSISTÊNCIA (localStorage) =====
+
+const STORAGE_KEY = 'espetaria_chat_v1';
+
+// Formato do estado persistido:
+// {
+//   history: [{kind:'msg',text,direction,time} | {kind:'order',order,time,pixData,pixApproved}],
+//   orderComplete: bool,
+//   bannerVisible: bool,
+//   pedidoId: int|null,
+//   tipoPedido: str|null,
+//   pedidoNotified: bool,
+// }
+
+let chatState = _loadState();
+
+function _loadState() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : _defaultState();
+    } catch (_) { return _defaultState(); }
+}
+
+function _defaultState() {
+    return {
+        history:        [],
+        orderComplete:  false,
+        bannerVisible:  false,
+        pedidoId:       null,
+        tipoPedido:     null,
+        pedidoNotified: false,
+    };
+}
+
+function _saveState() {
+    if (_restoring) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chatState)); } catch (_) {}
+}
+
+function _pushHistory(entry) {
+    if (_restoring) return;
+    chatState.history.push(entry);
+    _saveState();
+}
 
 // ===== MARKDOWN RENDERER =====
 
 function renderMarkdown(text) {
-    // Escape HTML first
     let html = text
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 
-    // Bold: **text**
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-    // Italic: *text* (only when not a list item at start of line)
     html = html.replace(/(?<![*\n])\*(?!\*|[ \t])(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-
-    // Horizontal rule: ---
     html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid #e0e0e0;margin:6px 0">');
-
-    // Unordered list items: lines starting with "* " or "- "
     html = html.replace(/^[*-] (.+)$/gm, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>(\n|$))+/g, '<ul style="padding-left:16px;margin:4px 0">$&</ul>');
-
-    // Line breaks
     html = html.replace(/\n/g, '<br>');
-
-    // Clean up <br> inside lists
     html = html.replace(/<br>\s*(<\/?[uo]l)/g, '$1');
     html = html.replace(/(<\/li>)<br>/g, '$1');
 
@@ -63,6 +97,10 @@ function updateContact(preview, time) {
 function setInputLock(locked) {
     isBusy = locked;
     inputAreaEl.classList.toggle('disabled', locked);
+}
+
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ===== TYPING INDICATOR =====
@@ -98,8 +136,12 @@ function tryParseOrder(text) {
     return null;
 }
 
-function addOrderCard(order) {
-    const time = now();
+// Retorna o elemento .order-wrap adicionado ao DOM.
+// opts.pixData   → se fornecido, renderiza PIX a partir do cache (sem novo fetch)
+// opts.pixApproved → se true, mostra estado aprovado sem iniciar polling
+// opts.time       → horário a exibir (usado no restore)
+function addOrderCard(order, opts = {}) {
+    const time = opts.time || now();
     const wrap = document.createElement('div');
     wrap.className = 'order-wrap';
 
@@ -111,16 +153,14 @@ function addOrderCard(order) {
         </div>`).join('<hr class="order-divider">');
 
     const isDelivery = order.tipo_pedido === 'entrega';
-    const tipoIcon  = isDelivery ? '🛵' : '🏪';
-    const tipoLabel = isDelivery ? 'Entrega' : 'Retirada no local';
+    const tipoIcon   = isDelivery ? '🛵' : '🏪';
+    const tipoLabel  = isDelivery ? 'Entrega' : 'Retirada no local';
 
     const enderecoHtml = order.endereco ? `
         <div class="order-info-row">
             <span class="order-info-label">${isDelivery ? '📍 Endereço' : '📍 Local'}</span>
             <span class="order-info-value">${escHtml(order.endereco)}</span>
         </div>` : '';
-
-    const pagamentoLabel = escHtml(order.forma_pagamento || '—');
 
     const trocoHtml = order.troco_para ? `
         <div class="order-info-row">
@@ -159,7 +199,7 @@ function addOrderCard(order) {
                 <div class="order-section-title">Pagamento</div>
                 <div class="order-info-row">
                     <span class="order-info-label">💳 Forma</span>
-                    <span class="order-info-value">${pagamentoLabel}</span>
+                    <span class="order-info-value">${escHtml(order.forma_pagamento || '—')}</span>
                 </div>
                 ${trocoHtml}
                 ${isPix ? '<div class="pix-section"><div class="pix-loading">⏳ Gerando QR Code PIX...</div></div>' : ''}
@@ -173,8 +213,20 @@ function addOrderCard(order) {
     updateContact(`Pedido: R$ ${order.valor_total.toFixed(2)}`, time);
 
     if (isPix) {
-        gerarPixQrCode(wrap, order);
+        if (opts.pixData) {
+            // Restore path: renderiza do cache, sem novo fetch
+            _renderPixFromCache(wrap, opts.pixData, opts.pixApproved);
+        } else {
+            // Fresh path: busca da API e salva no histórico
+            gerarPixQrCode(wrap, order);
+        }
     }
+
+    if (!_restoring) {
+        _pushHistory({ kind: 'order', order, time, pixData: null, pixApproved: false });
+    }
+
+    return wrap;
 }
 
 // ===== PIX PAYMENT =====
@@ -188,9 +240,9 @@ async function gerarPixQrCode(wrap, order) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                valor: order.valor_total,
+                valor:    order.valor_total,
                 descricao: `Pedido Espetaria - ${(order.cliente && order.cliente.nome) || 'Cliente'}`,
-                telefone: (order.cliente && order.cliente.telefone) || '',
+                telefone:  (order.cliente && order.cliente.telefone) || '',
             })
         });
 
@@ -199,35 +251,77 @@ async function gerarPixQrCode(wrap, order) {
 
         if (!data.qr_code_base64) throw new Error('QR Code não retornado');
 
-        const simulateHtml = data.is_test
-            ? `<button class="pix-simulate-btn" onclick="simularAprovacaoPix(${data.payment_id}, this)">🧪 Simular aprovação (ambiente de teste)</button>`
-            : '';
+        // Salva pixData no registro de histórico desta order
+        const entry = chatState.history.findLast(e => e.kind === 'order');
+        if (entry) { entry.pixData = data; _saveState(); }
 
-        pixSection.innerHTML = `
-            <div class="order-section-title">💠 Pague via PIX</div>
-            <div class="pix-qr-container">
-                <img src="data:image/png;base64,${data.qr_code_base64}" class="pix-qr-img" alt="QR Code PIX">
-                <p class="pix-instructions">Escaneie o QR Code no seu banco ou copie o código abaixo</p>
-                <div class="pix-copy-row">
-                    <input class="pix-copy-input" type="text" readonly value="">
-                    <button class="pix-copy-btn" onclick="copiarPix(this)">Copiar</button>
-                </div>
-                ${simulateHtml}
-                <div class="pix-status" data-payment-id="${data.payment_id}">⏳ Aguardando pagamento...</div>
-            </div>`;
-
-        pixSection.querySelector('.pix-copy-input').value = data.qr_code || '';
-        iniciarPollingPix(pixSection.querySelector('.pix-status'), data.payment_id, () => {
-            addMessage('✅ **Pagamento PIX confirmado!** Seu pedido já foi para a cozinha. Obrigado! 🎉', 'in');
-            orderBannerEl.style.display = 'flex';
-            setStatus('pedido finalizado');
-        });
+        _renderPixSection(pixSection, data);
+        iniciarPollingPix(pixSection.querySelector('.pix-status'), data.payment_id, _onPixApproved);
 
     } catch (e) {
-        pixSection.innerHTML = `<p class="pix-error">Erro ao gerar PIX: ${escHtml(e.message)}. Aceite outro meio de pagamento.</p>`;
+        const entry = chatState.history.findLast(e => e.kind === 'order');
+        if (entry) { entry.pixData = { error: e.message }; _saveState(); }
+        pixSection.innerHTML = `<p class="pix-error">Erro ao gerar PIX: ${escHtml(e.message)}. Informe ao atendente.</p>`;
     }
 
     scrollDown();
+}
+
+// Renderiza a seção PIX a partir de dados já obtidos (fresh ou cache)
+function _renderPixSection(pixSection, data) {
+    const simulateHtml = data.is_test
+        ? `<button class="pix-simulate-btn" onclick="simularAprovacaoPix(${data.payment_id}, this)">🧪 Simular aprovação (ambiente de teste)</button>`
+        : '';
+
+    pixSection.innerHTML = `
+        <div class="order-section-title">💠 Pague via PIX</div>
+        <div class="pix-qr-container">
+            <img src="data:image/png;base64,${data.qr_code_base64}" class="pix-qr-img" alt="QR Code PIX">
+            <p class="pix-instructions">Escaneie o QR Code no seu banco ou copie o código abaixo</p>
+            <div class="pix-copy-row">
+                <input class="pix-copy-input" type="text" readonly value="">
+                <button class="pix-copy-btn" onclick="copiarPix(this)">Copiar</button>
+            </div>
+            ${simulateHtml}
+            <div class="pix-status" data-payment-id="${data.payment_id}">⏳ Aguardando pagamento...</div>
+        </div>`;
+
+    pixSection.querySelector('.pix-copy-input').value = data.qr_code || '';
+}
+
+// Renderiza seção PIX na restore path
+function _renderPixFromCache(wrap, pixData, alreadyApproved) {
+    const pixSection = wrap.querySelector('.pix-section');
+    if (!pixSection) return;
+
+    if (pixData.error) {
+        pixSection.innerHTML = `<p class="pix-error">Erro ao gerar PIX: ${escHtml(pixData.error)}. Informe ao atendente.</p>`;
+        return;
+    }
+
+    _renderPixSection(pixSection, pixData);
+
+    const statusEl2 = pixSection.querySelector('.pix-status');
+
+    if (alreadyApproved) {
+        statusEl2.textContent = '✅ Pagamento confirmado!';
+        statusEl2.classList.add('pix-status--approved');
+        const simulateBtn = pixSection.querySelector('.pix-simulate-btn');
+        if (simulateBtn) simulateBtn.remove();
+    } else {
+        iniciarPollingPix(statusEl2, pixData.payment_id, _onPixApproved);
+    }
+}
+
+function _onPixApproved() {
+    addMessage('✅ **Pagamento PIX confirmado!** Seu pedido já foi para a cozinha. Obrigado! 🎉', 'in');
+    orderBannerEl.style.display = 'flex';
+    setStatus('pedido finalizado');
+
+    chatState.bannerVisible = true;
+    const entry = chatState.history.findLast(e => e.kind === 'order');
+    if (entry) entry.pixApproved = true;
+    _saveState();
 }
 
 async function simularAprovacaoPix(paymentId, btn) {
@@ -254,7 +348,7 @@ function copiarPix(btn) {
     });
 }
 
-function iniciarPollingPix(statusEl, paymentId, onApproved) {
+function iniciarPollingPix(pixStatusEl, paymentId, onApproved) {
     let attempts = 0;
     const maxAttempts = 100;
 
@@ -262,7 +356,7 @@ function iniciarPollingPix(statusEl, paymentId, onApproved) {
         attempts++;
         if (attempts > maxAttempts) {
             clearInterval(interval);
-            statusEl.textContent = '⏰ Tempo expirado. Informe o comprovante ao atendente.';
+            pixStatusEl.textContent = '⏰ Tempo expirado. Informe o comprovante ao atendente.';
             return;
         }
         try {
@@ -271,28 +365,46 @@ function iniciarPollingPix(statusEl, paymentId, onApproved) {
 
             if (data.status === 'approved') {
                 clearInterval(interval);
-                statusEl.textContent = '✅ Pagamento confirmado!';
-                statusEl.classList.add('pix-status--approved');
+                pixStatusEl.textContent = '✅ Pagamento confirmado!';
+                pixStatusEl.classList.add('pix-status--approved');
                 if (typeof onApproved === 'function') onApproved();
             } else if (data.status === 'rejected' || data.status === 'cancelled') {
                 clearInterval(interval);
-                statusEl.textContent = '❌ Pagamento não concluído. Informe ao atendente.';
+                pixStatusEl.textContent = '❌ Pagamento não concluído. Informe ao atendente.';
             }
         } catch (_) {}
     }, 3000);
 }
 
-// ===== REGULAR MESSAGES =====
+// ===== KITCHEN POLLING =====
 
-function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function iniciarPollingPedido(pedidoId, tipoPedido) {
+    const interval = setInterval(async () => {
+        try {
+            const res  = await fetch(`/api/pedido/status/${pedidoId}`);
+            const data = await res.json();
+
+            if (data.status === 'concluido') {
+                clearInterval(interval);
+                const msg = tipoPedido === 'entrega'
+                    ? '🛵 Seu pedido saiu para entrega!'
+                    : '🍽️ Seu pedido está pronto para retirada!';
+                addMessage(msg, 'in');
+
+                chatState.pedidoNotified = true;
+                _saveState();
+            }
+        } catch (_) {}
+    }, 5000);
 }
 
-function addMessage(text, direction) {
-    const time  = now();
+// ===== REGULAR MESSAGES =====
+
+function addMessage(text, direction, opts = {}) {
+    const time  = opts.time || now();
     const isOut = direction === 'out';
 
-    if (direction === 'in') {
+    if (direction === 'in' && !opts.fromRestore) {
         const order = tryParseOrder(text);
         if (order) {
             addOrderCard(order);
@@ -320,7 +432,6 @@ function addMessage(text, direction) {
     const timeEl = document.createElement('span');
     timeEl.className = 'msg-time';
     timeEl.textContent = time;
-
     meta.appendChild(timeEl);
 
     if (isOut) {
@@ -343,6 +454,10 @@ function addMessage(text, direction) {
         ? `Você: ${text.slice(0, 45)}${text.length > 45 ? '…' : ''}`
         : `${text.slice(0, 50)}${text.length > 50 ? '…' : ''}`;
     updateContact(preview, time);
+
+    if (!_restoring) {
+        _pushHistory({ kind: 'msg', text, direction, time });
+    }
 }
 
 // ===== SEND MESSAGE =====
@@ -374,16 +489,28 @@ async function sendMessage() {
 
         if (data.order_complete) {
             inputAreaEl.style.display = 'none';
+            chatState.orderComplete = true;
 
-            const order  = tryParseOrder(data.response);
-            const isPix  = order && /pix/i.test(order.forma_pagamento || '');
+            const order     = tryParseOrder(data.response);
+            const isPix     = order && /pix/i.test(order.forma_pagamento || '');
+            const pedidoId  = data.pedido_id || null;
+            const tipoPedido = order ? order.tipo_pedido : '';
+
+            chatState.pedidoId   = pedidoId;
+            chatState.tipoPedido = tipoPedido;
+            _saveState();
 
             if (isPix) {
                 setStatus('aguardando pagamento PIX...');
-                // banner e mensagem de confirmação são disparados pelo polling
             } else {
                 setStatus('pedido finalizado');
                 orderBannerEl.style.display = 'flex';
+                chatState.bannerVisible = true;
+                _saveState();
+            }
+
+            if (pedidoId && !chatState.pedidoNotified) {
+                iniciarPollingPedido(pedidoId, tipoPedido);
             }
         } else {
             inputEl.focus();
@@ -400,6 +527,9 @@ async function sendMessage() {
 // ===== NEW CONVERSATION =====
 
 async function newConversation() {
+    chatState = _defaultState();
+    localStorage.removeItem(STORAGE_KEY);
+
     messagesEl.innerHTML = '<div class="date-badge">HOJE</div>';
     orderBannerEl.style.display = 'none';
     inputAreaEl.style.display   = '';
@@ -411,6 +541,60 @@ async function newConversation() {
 
     setStatus('online');
     inputEl.focus();
+}
+
+// ===== RESTORE STATE FROM LOCALSTORAGE =====
+
+function _restoreState() {
+    if (!chatState.history || chatState.history.length === 0) return;
+
+    _restoring = true;
+
+    for (const entry of chatState.history) {
+        if (entry.kind === 'msg') {
+            addMessage(entry.text, entry.direction, { time: entry.time, fromRestore: true });
+        } else if (entry.kind === 'order') {
+            addOrderCard(entry.order, {
+                time:         entry.time,
+                pixData:      entry.pixData  || null,
+                pixApproved:  entry.pixApproved || false,
+            });
+        }
+    }
+
+    _restoring = false;
+
+    // Restaura estado da UI
+    if (chatState.orderComplete) {
+        inputAreaEl.style.display = 'none';
+    }
+    if (chatState.bannerVisible) {
+        orderBannerEl.style.display = 'flex';
+    }
+
+    // Retoma polling da cozinha, se necessário
+    if (chatState.pedidoId && !chatState.pedidoNotified) {
+        iniciarPollingPedido(chatState.pedidoId, chatState.tipoPedido || '');
+    }
+
+    // Status bar
+    if (chatState.orderComplete && chatState.bannerVisible) {
+        setStatus('pedido finalizado');
+    } else if (chatState.orderComplete) {
+        setStatus('aguardando pagamento PIX...');
+    } else {
+        setStatus('online');
+    }
+
+    const last = chatState.history[chatState.history.length - 1];
+    if (last) updateContact(
+        last.kind === 'order'
+            ? `Pedido: R$ ${last.order.valor_total.toFixed(2)}`
+            : last.kind === 'msg'
+                ? (last.direction === 'out' ? `Você: ${last.text.slice(0,45)}` : last.text.slice(0,50))
+                : '',
+        last.time || ''
+    );
 }
 
 // ===== KEYBOARD & INPUT =====
@@ -447,14 +631,17 @@ window.addEventListener('resize', () => {
 // ===== INIT =====
 
 function init() {
-    setStatus('online');
-    updateContact('Envie uma mensagem para começar', '');
-
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.remove('hidden');
     }
 
-    inputEl.focus();
+    if (chatState.history && chatState.history.length > 0) {
+        _restoreState();
+    } else {
+        setStatus('online');
+        updateContact('Envie uma mensagem para começar', '');
+        inputEl.focus();
+    }
 }
 
 init();

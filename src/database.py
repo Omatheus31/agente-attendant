@@ -100,8 +100,22 @@ def save_pedido(telefone: str, nome: str, endereco: str | None, pedido_json: str
             INSERT INTO pedidos (telefone, nome, detalhes_json, status)
             VALUES (%s, %s, %s, 'pendente')
         ''', (telefone, nome, pedido_json))
-        
+        pedido_id = cursor.lastrowid
+
     conn.close()
+    return pedido_id
+
+
+def get_pedido_status(pedido_id: int) -> dict | None:
+    conn = _conn()
+    with conn.cursor() as cursor:
+        cursor.execute(
+            'SELECT id, status, detalhes_json FROM pedidos WHERE id = %s',
+            (pedido_id,)
+        )
+        row = cursor.fetchone()
+    conn.close()
+    return row
 
 
 def get_pedidos_pendentes() -> list:

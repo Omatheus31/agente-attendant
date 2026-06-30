@@ -8,7 +8,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.agent_service import EspetariaAgent
-from src.database import get_cliente, init_db, save_pedido, get_pedidos_pendentes, atualizar_status_pedido
+from src.database import get_cliente, init_db, save_pedido, get_pedidos_pendentes, atualizar_status_pedido, get_pedido_status
 from src.payment import criar_pagamento_pix, consultar_pagamento, simular_aprovacao, MP_IS_TEST
 
 app = Flask(__name__, static_folder='static')
@@ -213,13 +213,15 @@ def message():
         and '"cliente"'        in clean_response
     )
 
+    pedido_id = None
     if order_complete:
-        _persist_order(clean_response)
+        pedido_id = _persist_order(clean_response)
 
     return jsonify({
-        'response':      clean_response,
+        'response':       clean_response,
         'order_complete': order_complete,
-        'cart':          current_cart,
+        'cart':           current_cart,
+        'pedido_id':      pedido_id,
     })
 
 
@@ -249,6 +251,22 @@ def status_pagamento(payment_id):
     except Exception as e:
         print(f'[MP] Erro ao consultar pagamento {payment_id}: {e}')
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/pedido/status/<int:pedido_id>')
+def status_pedido_cliente(pedido_id):
+    pedido = get_pedido_status(pedido_id)
+    if not pedido:
+        return jsonify({'error': 'Pedido não encontrado'}), 404
+    detalhes = pedido.get('detalhes_json') or {}
+    if isinstance(detalhes, str):
+        import json as _json
+        detalhes = _json.loads(detalhes)
+    return jsonify({
+        'id':          pedido['id'],
+        'status':      pedido['status'],
+        'tipo_pedido': detalhes.get('tipo_pedido', ''),
+    })
 
 
 @app.route('/api/pagamento/simular/<int:payment_id>', methods=['POST'])
@@ -282,17 +300,17 @@ def lookup_cliente(telefone):
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-def _persist_order(response_text: str):
+def _persist_order(response_text: str) -> int | None:
     try:
         match = re.search(r'\{[\s\S]*\}', response_text)
         if not match:
-            return
+            return None
         order    = json.loads(match.group(0))
         cliente  = order.get('cliente', {})
         telefone = str(cliente.get('telefone', '')).strip()
         nome     = str(cliente.get('nome', '')).strip()
         if not telefone:
-            return
+            return None
 
         endereco = order.get('endereco') if order.get('tipo_pedido') == 'entrega' else None
 
@@ -303,11 +321,13 @@ def _persist_order(response_text: str):
             'forma_pagamento': order.get('forma_pagamento'),
         }, ensure_ascii=False)
 
-        save_pedido(telefone, nome, endereco, pedido_resumo)
-        print(f"[DB] Pedido salvo: {nome} ({telefone})")
+        pedido_id = save_pedido(telefone, nome, endereco, pedido_resumo)
+        print(f"[DB] Pedido salvo: {nome} ({telefone}) → id={pedido_id}")
+        return pedido_id
 
     except Exception as e:
         print(f"[DB] Erro ao salvar: {e}")
+        return None
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
