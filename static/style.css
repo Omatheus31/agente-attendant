@@ -525,33 +525,20 @@ body {
 .send-btn { transition: color 0.15s; }
 .send-btn.active svg { fill: #00a884 !important; }
 
-/* Order complete banner */
-.order-banner {
-    background: #d9fdd3;
-    border-top: 1px solid #a8e6bc;
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 14px;
-    color: #075e54;
-    font-weight: 500;
-    flex-shrink: 0;
-}
-
-.order-banner button {
-    background: #128C7E;
+.new-conv-text-btn {
+    background: rgba(255,255,255,0.15);
     color: #fff;
-    border: none;
+    border: 1px solid rgba(255,255,255,0.4);
     border-radius: 20px;
-    padding: 7px 18px;
+    padding: 5px 14px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s;
+    white-space: nowrap;
 }
 
-.order-banner button:hover { background: #0a7363; }
+.new-conv-text-btn:hover { background: rgba(255,255,255,0.25); }
 
 /* ===== PAYMENT CARDS ===== */
 
@@ -672,6 +659,9 @@ body {
 }
 
 .mp-pay-btn:hover { background: #0086c4; }
+
+.mp-pay-btn.pix-btn { background: #00b386; }
+.mp-pay-btn.pix-btn:hover { background: #009970; }
 
 .payment-footer-note {
     background: #f5f5f5;

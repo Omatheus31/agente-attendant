@@ -4,7 +4,6 @@ const sendBtnEl        = document.getElementById('send-btn');
 const statusEl         = document.getElementById('chat-status');
 const contactPreviewEl = document.getElementById('contact-preview');
 const contactTimeEl    = document.getElementById('contact-time');
-const orderBannerEl    = document.getElementById('order-banner');
 const inputAreaEl      = document.getElementById('input-area');
 
 let isBusy = false;
@@ -240,24 +239,38 @@ function addPaymentCard(payment) {
     wrap.className = 'msg-wrap msg-wrap--in';
 
     if (payment.tipo === 'pix') {
-        const qr   = payment.qr_code_base64 || '';
-        const code = payment.qr_code || '';
+        const hasQr = payment.qr_code_base64 || payment.qr_code;
+
+        const qrHtml = payment.qr_code_base64
+            ? `<div class="pix-qr"><img src="data:image/png;base64,${payment.qr_code_base64}" alt="QR Code PIX"></div>`
+            : '';
+
+        const copyHtml = payment.qr_code ? `
+            <div class="pix-copy-section">
+                <p class="pix-copy-label">Pix Copia e Cola</p>
+                <div class="pix-copy-row">
+                    <input class="pix-input" id="pix-code" type="text" value="${escHtml(payment.qr_code)}" readonly>
+                    <button class="pix-copy-btn" onclick="copyPix()">Copiar</button>
+                </div>
+                <p class="pix-copied-msg" id="pix-copied" style="display:none">✓ Copiado!</p>
+            </div>` : '';
+
+        const linkHtml = !hasQr && payment.checkout_url ? `
+            <p class="card-description">Clique abaixo para pagar via PIX no Mercado Pago.</p>
+            <a class="mp-pay-btn pix-btn" href="${payment.checkout_url}" target="_blank" rel="noopener">
+                Pagar R$ ${Number(payment.valor).toFixed(2)} via PIX →
+            </a>` : '';
+
         wrap.innerHTML = `
             <div class="payment-card">
                 <div class="payment-card-header pix-header">
                     <span class="payment-brand">💸 Pague via PIX</span>
                     <span class="payment-valor">R$ ${Number(payment.valor).toFixed(2)}</span>
                 </div>
-                ${qr ? `<div class="pix-qr"><img src="data:image/png;base64,${qr}" alt="QR Code PIX"></div>` : ''}
-                <div class="pix-copy-section">
-                    <p class="pix-copy-label">Código Pix Copia e Cola</p>
-                    <div class="pix-copy-row">
-                        <input class="pix-input" id="pix-code" type="text" value="${escHtml(code)}" readonly>
-                        <button class="pix-copy-btn" onclick="copyPix()">Copiar</button>
-                    </div>
-                    <p class="pix-copied-msg" id="pix-copied" style="display:none">✓ Copiado!</p>
-                </div>
-                <div class="payment-footer-note">⏰ Válido por 30 minutos · Aprovação instantânea</div>
+                ${qrHtml}
+                ${copyHtml}
+                ${linkHtml}
+                <div class="payment-footer-note">⚡ Aprovação instantânea · Mercado Pago</div>
             </div>`;
     } else {
         wrap.innerHTML = `
@@ -318,13 +331,15 @@ async function sendMessage() {
         addMessage(data.response, 'in');
 
         if (data.order_complete) {
-            setStatus('pedido finalizado');
-            if (data.payment) addPaymentCard(data.payment);
-            orderBannerEl.style.display = 'flex';
-            inputAreaEl.style.display   = 'none';
-        } else {
-            inputEl.focus();
+            setStatus('pedido finalizado ✓');
+            if (data.payment) {
+                addPaymentCard(data.payment);
+            } else {
+                addMessage('⚠️ Cobrança digital não configurada. Combine o pagamento na entrega ou adicione MERCADO_PAGO_ACCESS_TOKEN no .env e reinicie.', 'in');
+            }
+            // Conversation stays open — customer can still send messages
         }
+        inputEl.focus();
     } catch (_) {
         hideTyping();
         setStatus('online');
@@ -338,8 +353,6 @@ async function sendMessage() {
 
 async function newConversation() {
     messagesEl.innerHTML = '<div class="date-badge">HOJE</div>';
-    orderBannerEl.style.display = 'none';
-    inputAreaEl.style.display   = '';
     updateContact('Envie uma mensagem para começar', '');
 
     try {

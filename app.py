@@ -180,12 +180,23 @@ def message():
     clean_response = _strip_items_marker(raw_response)
 
     # ── 5. Detect order completion and persist ────────────────────────────────
-    order_complete = (
-        '"itens"'          in clean_response
-        and '"valor_total"'    in clean_response
-        and '"forma_pagamento"' in clean_response
-        and '"cliente"'        in clean_response
-    )
+    order_complete = False
+    if ('"itens"' in clean_response
+            and '"valor_total"' in clean_response
+            and '"forma_pagamento"' in clean_response
+            and '"cliente"' in clean_response):
+        try:
+            _m = re.search(r'\{[\s\S]*\}', clean_response)
+            if _m:
+                _o = json.loads(_m.group(0))
+                _forma = (_o.get('forma_pagamento') or '').strip()
+                _tipo  = (_o.get('tipo_pedido') or '').strip()
+                _nome  = (_o.get('cliente', {}).get('nome') or '').strip()
+                _tel   = (_o.get('cliente', {}).get('telefone') or '').strip()
+                _itens = _o.get('itens') or []
+                order_complete = bool(_forma and _tipo and _nome and _tel and _itens)
+        except Exception:
+            pass
 
     payment_data = None
     if order_complete:
@@ -230,17 +241,22 @@ def _create_payment(response_text: str) -> dict | None:
         tel    = str(cliente.get('telefone', '00000000000')).strip()
         desc   = f"Pedido Espetaria do Chef – {nome}"
 
+        print(f"[PAYMENT] valor={valor} forma='{forma}' nome='{nome}' tel='{tel}'")
+
         if 'pix' in forma:
             return create_pix(valor, desc, nome, tel)
 
         if 'créd' in forma or 'cred' in forma or 'déb' in forma or 'deb' in forma:
             return create_checkout_link(valor, desc, nome, tel, forma)
 
-        # Dinheiro ou método desconhecido — sem cobrança digital
+        # Dinheiro ou forma não identificada — sem cobrança digital
+        print(f"[PAYMENT] forma nao reconhecida ou dinheiro, sem cobranca digital")
         return None
 
     except Exception as e:
+        import traceback
         print(f"[PAYMENT] Erro ao gerar cobrança: {e}")
+        traceback.print_exc()
         return None
 
 
@@ -275,6 +291,9 @@ def _persist_order(response_text: str):
 # ── entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
+    import os as _os
+    _mp_token = _os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "")
     print("Espetaria do Chef - Interface Web")
+    print(f"Mercado Pago: {'OK (' + _mp_token[:12] + '...)' if _mp_token else 'NAO CONFIGURADO'}")
     print("Acesse: http://localhost:5000")
     app.run(debug=True, port=5000)
