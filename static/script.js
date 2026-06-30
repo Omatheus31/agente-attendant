@@ -139,6 +139,8 @@ function addOrderCard(order) {
             <span class="order-info-value">${escHtml(order.cliente.telefone || '—')}</span>
         </div>` : '';
 
+    const isPix = /pix/i.test(order.forma_pagamento || '');
+
     wrap.innerHTML = `
         <div class="order-card">
             <div class="order-header">🎉 Pedido Confirmado!</div>
@@ -160,6 +162,7 @@ function addOrderCard(order) {
                     <span class="order-info-value">${pagamentoLabel}</span>
                 </div>
                 ${trocoHtml}
+                ${isPix ? '<div class="pix-section"><div class="pix-loading">⏳ Gerando QR Code PIX...</div></div>' : ''}
                 ${clienteHtml}
             </div>
             <div class="order-footer">Cadastro salvo ✓ &nbsp;·&nbsp; ${time}</div>
@@ -168,6 +171,93 @@ function addOrderCard(order) {
     messagesEl.appendChild(wrap);
     scrollDown();
     updateContact(`Pedido: R$ ${order.valor_total.toFixed(2)}`, time);
+
+    if (isPix) {
+        gerarPixQrCode(wrap, order);
+    }
+}
+
+// ===== PIX PAYMENT =====
+
+async function gerarPixQrCode(wrap, order) {
+    const pixSection = wrap.querySelector('.pix-section');
+    if (!pixSection) return;
+
+    try {
+        const res = await fetch('/api/pagamento/pix', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                valor: order.valor_total,
+                descricao: `Pedido Espetaria - ${(order.cliente && order.cliente.nome) || 'Cliente'}`,
+                telefone: (order.cliente && order.cliente.telefone) || '',
+            })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (!data.qr_code_base64) throw new Error('QR Code não retornado');
+
+        pixSection.innerHTML = `
+            <div class="order-section-title">💠 Pague via PIX</div>
+            <div class="pix-qr-container">
+                <img src="data:image/png;base64,${data.qr_code_base64}" class="pix-qr-img" alt="QR Code PIX">
+                <p class="pix-instructions">Escaneie o QR Code no seu banco ou copie o código abaixo</p>
+                <div class="pix-copy-row">
+                    <input class="pix-copy-input" type="text" readonly value="">
+                    <button class="pix-copy-btn" onclick="copiarPix(this)">Copiar</button>
+                </div>
+                <div class="pix-status" data-payment-id="${data.payment_id}">⏳ Aguardando pagamento...</div>
+            </div>`;
+
+        pixSection.querySelector('.pix-copy-input').value = data.qr_code || '';
+        iniciarPollingPix(pixSection.querySelector('.pix-status'), data.payment_id);
+
+    } catch (e) {
+        pixSection.innerHTML = `<p class="pix-error">Erro ao gerar PIX: ${escHtml(e.message)}. Aceite outro meio de pagamento.</p>`;
+    }
+
+    scrollDown();
+}
+
+function copiarPix(btn) {
+    const input = btn.previousElementSibling;
+    navigator.clipboard.writeText(input.value).then(() => {
+        btn.textContent = 'Copiado!';
+        setTimeout(() => { btn.textContent = 'Copiar'; }, 2000);
+    }).catch(() => {
+        input.select();
+        document.execCommand('copy');
+        btn.textContent = 'Copiado!';
+        setTimeout(() => { btn.textContent = 'Copiar'; }, 2000);
+    });
+}
+
+function iniciarPollingPix(statusEl, paymentId) {
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    const interval = setInterval(async () => {
+        attempts++;
+        if (attempts > maxAttempts) {
+            clearInterval(interval);
+            statusEl.textContent = '⏰ Tempo expirado. Informe o comprovante ao atendente.';
+            return;
+        }
+        try {
+            const res = await fetch(`/api/pagamento/status/${paymentId}`);
+            const data = await res.json();
+            if (data.status === 'approved') {
+                clearInterval(interval);
+                statusEl.textContent = '✅ Pagamento confirmado!';
+                statusEl.classList.add('pix-status--approved');
+            } else if (data.status === 'rejected' || data.status === 'cancelled') {
+                clearInterval(interval);
+                statusEl.textContent = '❌ Pagamento não concluído. Informe ao atendente.';
+            }
+        } catch (_) {}
+    }, 3000);
 }
 
 // ===== REGULAR MESSAGES =====

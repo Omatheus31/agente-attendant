@@ -9,6 +9,7 @@ from flask import Flask, jsonify, request, send_from_directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.agent_service import EspetariaAgent
 from src.database import get_cliente, init_db, save_pedido, get_pedidos_pendentes, atualizar_status_pedido
+from src.payment import criar_pagamento_pix, consultar_pagamento
 
 app = Flask(__name__, static_folder='static')
 
@@ -220,6 +221,41 @@ def message():
         'order_complete': order_complete,
         'cart':          current_cart,
     })
+
+
+@app.route('/api/pagamento/pix', methods=['POST'])
+def gerar_pix():
+    data = request.get_json() or {}
+    valor = data.get('valor')
+    descricao = data.get('descricao', 'Pedido Espetaria do Chef')
+    telefone = str(data.get('telefone', '')).strip()
+
+    if not valor:
+        return jsonify({'error': 'Valor obrigatório'}), 400
+
+    try:
+        resultado = criar_pagamento_pix(float(valor), descricao, telefone)
+        return jsonify(resultado)
+    except Exception as e:
+        print(f'[MP] Erro ao gerar PIX: {e}')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/pagamento/status/<int:payment_id>')
+def status_pagamento(payment_id):
+    try:
+        resultado = consultar_pagamento(payment_id)
+        return jsonify(resultado)
+    except Exception as e:
+        print(f'[MP] Erro ao consultar pagamento {payment_id}: {e}')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/pagamento/webhook', methods=['POST'])
+def webhook_pagamento():
+    data = request.get_json() or {}
+    print(f'[MP Webhook] {data}')
+    return jsonify({'ok': True})
 
 
 @app.route('/api/reset', methods=['POST'])
