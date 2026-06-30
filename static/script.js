@@ -233,6 +233,63 @@ function addMessage(text, direction) {
     updateContact(preview, time);
 }
 
+// ===== PAYMENT CARD =====
+
+function addPaymentCard(payment) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-wrap msg-wrap--in';
+
+    if (payment.tipo === 'pix') {
+        const qr   = payment.qr_code_base64 || '';
+        const code = payment.qr_code || '';
+        wrap.innerHTML = `
+            <div class="payment-card">
+                <div class="payment-card-header pix-header">
+                    <span class="payment-brand">💸 Pague via PIX</span>
+                    <span class="payment-valor">R$ ${Number(payment.valor).toFixed(2)}</span>
+                </div>
+                ${qr ? `<div class="pix-qr"><img src="data:image/png;base64,${qr}" alt="QR Code PIX"></div>` : ''}
+                <div class="pix-copy-section">
+                    <p class="pix-copy-label">Código Pix Copia e Cola</p>
+                    <div class="pix-copy-row">
+                        <input class="pix-input" id="pix-code" type="text" value="${escHtml(code)}" readonly>
+                        <button class="pix-copy-btn" onclick="copyPix()">Copiar</button>
+                    </div>
+                    <p class="pix-copied-msg" id="pix-copied" style="display:none">✓ Copiado!</p>
+                </div>
+                <div class="payment-footer-note">⏰ Válido por 30 minutos · Aprovação instantânea</div>
+            </div>`;
+    } else {
+        wrap.innerHTML = `
+            <div class="payment-card">
+                <div class="payment-card-header card-header">
+                    <span class="payment-brand">💳 Pague com Cartão</span>
+                    <span class="payment-valor">R$ ${Number(payment.valor).toFixed(2)}</span>
+                </div>
+                <p class="card-description">Clique abaixo para pagar com segurança pelo Mercado Pago.</p>
+                <a class="mp-pay-btn" href="${payment.checkout_url}" target="_blank" rel="noopener">
+                    Pagar R$ ${Number(payment.valor).toFixed(2)} →
+                </a>
+                <div class="payment-footer-note">🔒 Ambiente seguro · Mercado Pago</div>
+            </div>`;
+    }
+
+    messagesEl.appendChild(wrap);
+    scrollDown();
+}
+
+function copyPix() {
+    const input = document.getElementById('pix-code');
+    if (!input) return;
+    navigator.clipboard.writeText(input.value).then(() => {
+        const msg = document.getElementById('pix-copied');
+        if (msg) { msg.style.display = 'block'; setTimeout(() => msg.style.display = 'none', 2500); }
+    }).catch(() => {
+        input.select();
+        document.execCommand('copy');
+    });
+}
+
 // ===== SEND MESSAGE =====
 
 async function sendMessage() {
@@ -262,6 +319,7 @@ async function sendMessage() {
 
         if (data.order_complete) {
             setStatus('pedido finalizado');
+            if (data.payment) addPaymentCard(data.payment);
             orderBannerEl.style.display = 'flex';
             inputAreaEl.style.display   = 'none';
         } else {

@@ -9,6 +9,7 @@ from flask import Flask, jsonify, request, send_from_directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.agent_service import EspetariaAgent
 from src.database import get_cliente, init_db, save_pedido
+from src.payment import create_checkout_link, create_pix
 
 app = Flask(__name__, static_folder='static')
 
@@ -186,13 +187,16 @@ def message():
         and '"cliente"'        in clean_response
     )
 
+    payment_data = None
     if order_complete:
         _persist_order(clean_response)
+        payment_data = _create_payment(clean_response)
 
     return jsonify({
-        'response':      clean_response,
+        'response':       clean_response,
         'order_complete': order_complete,
-        'cart':          current_cart,
+        'cart':           current_cart,
+        'payment':        payment_data,
     })
 
 
@@ -211,6 +215,34 @@ def lookup_cliente(telefone):
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
+def _create_payment(response_text: str) -> dict | None:
+    """Generate a real Mercado Pago charge based on the order JSON."""
+    try:
+        match = re.search(r'\{[\s\S]*\}', response_text)
+        if not match:
+            return None
+        order  = json.loads(match.group(0))
+        valor  = float(order.get('valor_total', 0))
+        forma  = (order.get('forma_pagamento') or '').lower()
+        cliente = order.get('cliente', {})
+        nome   = str(cliente.get('nome', 'Cliente')).strip()
+        tel    = str(cliente.get('telefone', '00000000000')).strip()
+        desc   = f"Pedido Espetaria do Chef – {nome}"
+
+        if 'pix' in forma:
+            return create_pix(valor, desc, nome, tel)
+
+        if 'créd' in forma or 'cred' in forma or 'déb' in forma or 'deb' in forma:
+            return create_checkout_link(valor, desc, nome, tel, forma)
+
+        # Dinheiro ou método desconhecido — sem cobrança digital
+        return None
+
+    except Exception as e:
+        print(f"[PAYMENT] Erro ao gerar cobrança: {e}")
+        return None
+
 
 def _persist_order(response_text: str):
     try:
