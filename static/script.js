@@ -199,6 +199,10 @@ async function gerarPixQrCode(wrap, order) {
 
         if (!data.qr_code_base64) throw new Error('QR Code não retornado');
 
+        const ticketHtml = data.ticket_url
+            ? `<a class="pix-ticket-link" href="${data.ticket_url}" target="_blank" rel="noopener">🧪 Simular pagamento (ambiente de teste)</a>`
+            : '';
+
         pixSection.innerHTML = `
             <div class="order-section-title">💠 Pague via PIX</div>
             <div class="pix-qr-container">
@@ -208,11 +212,16 @@ async function gerarPixQrCode(wrap, order) {
                     <input class="pix-copy-input" type="text" readonly value="">
                     <button class="pix-copy-btn" onclick="copiarPix(this)">Copiar</button>
                 </div>
+                ${ticketHtml}
                 <div class="pix-status" data-payment-id="${data.payment_id}">⏳ Aguardando pagamento...</div>
             </div>`;
 
         pixSection.querySelector('.pix-copy-input').value = data.qr_code || '';
-        iniciarPollingPix(pixSection.querySelector('.pix-status'), data.payment_id);
+        iniciarPollingPix(pixSection.querySelector('.pix-status'), data.payment_id, () => {
+            addMessage('✅ **Pagamento PIX confirmado!** Seu pedido já foi para a cozinha. Obrigado! 🎉', 'in');
+            orderBannerEl.style.display = 'flex';
+            setStatus('pedido finalizado');
+        });
 
     } catch (e) {
         pixSection.innerHTML = `<p class="pix-error">Erro ao gerar PIX: ${escHtml(e.message)}. Aceite outro meio de pagamento.</p>`;
@@ -234,7 +243,7 @@ function copiarPix(btn) {
     });
 }
 
-function iniciarPollingPix(statusEl, paymentId) {
+function iniciarPollingPix(statusEl, paymentId, onApproved) {
     let attempts = 0;
     const maxAttempts = 100;
 
@@ -246,12 +255,14 @@ function iniciarPollingPix(statusEl, paymentId) {
             return;
         }
         try {
-            const res = await fetch(`/api/pagamento/status/${paymentId}`);
+            const res  = await fetch(`/api/pagamento/status/${paymentId}`);
             const data = await res.json();
+
             if (data.status === 'approved') {
                 clearInterval(interval);
                 statusEl.textContent = '✅ Pagamento confirmado!';
                 statusEl.classList.add('pix-status--approved');
+                if (typeof onApproved === 'function') onApproved();
             } else if (data.status === 'rejected' || data.status === 'cancelled') {
                 clearInterval(interval);
                 statusEl.textContent = '❌ Pagamento não concluído. Informe ao atendente.';
@@ -351,9 +362,18 @@ async function sendMessage() {
         addMessage(data.response, 'in');
 
         if (data.order_complete) {
-            setStatus('pedido finalizado');
-            orderBannerEl.style.display = 'flex';
-            inputAreaEl.style.display   = 'none';
+            inputAreaEl.style.display = 'none';
+
+            const order  = tryParseOrder(data.response);
+            const isPix  = order && /pix/i.test(order.forma_pagamento || '');
+
+            if (isPix) {
+                setStatus('aguardando pagamento PIX...');
+                // banner e mensagem de confirmação são disparados pelo polling
+            } else {
+                setStatus('pedido finalizado');
+                orderBannerEl.style.display = 'flex';
+            }
         } else {
             inputEl.focus();
         }
