@@ -199,8 +199,8 @@ async function gerarPixQrCode(wrap, order) {
 
         if (!data.qr_code_base64) throw new Error('QR Code não retornado');
 
-        const ticketHtml = data.ticket_url
-            ? `<a class="pix-ticket-link" href="${data.ticket_url}" target="_blank" rel="noopener">🧪 Simular pagamento (ambiente de teste)</a>`
+        const simulateHtml = data.is_test
+            ? `<button class="pix-simulate-btn" onclick="simularAprovacaoPix(${data.payment_id}, this)">🧪 Simular aprovação (ambiente de teste)</button>`
             : '';
 
         pixSection.innerHTML = `
@@ -212,7 +212,7 @@ async function gerarPixQrCode(wrap, order) {
                     <input class="pix-copy-input" type="text" readonly value="">
                     <button class="pix-copy-btn" onclick="copiarPix(this)">Copiar</button>
                 </div>
-                ${ticketHtml}
+                ${simulateHtml}
                 <div class="pix-status" data-payment-id="${data.payment_id}">⏳ Aguardando pagamento...</div>
             </div>`;
 
@@ -228,6 +228,17 @@ async function gerarPixQrCode(wrap, order) {
     }
 
     scrollDown();
+}
+
+async function simularAprovacaoPix(paymentId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Aprovando...';
+    try {
+        await fetch(`/api/pagamento/simular/${paymentId}`, { method: 'POST' });
+    } catch (_) {
+        btn.disabled = false;
+        btn.textContent = '🧪 Simular aprovação (ambiente de teste)';
+    }
 }
 
 function copiarPix(btn) {

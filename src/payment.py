@@ -11,6 +11,14 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env')
 _MP_ACCESS_TOKEN = os.getenv('MERCADO_PAGO_ACCESS_TOKEN', '').strip()
 _MP_API_BASE = 'https://api.mercadopago.com'
 
+# O sandbox do Mercado Pago não tem nenhum jeito real de aprovar um PIX de teste
+# (nem ticket_url, nem o truque payer.first_name=APRO funcionam pra PIX, só pra cartão).
+# Por isso, quando o token é de TESTE, expomos um botão de simulação manual no chat.
+MP_IS_TEST = _MP_ACCESS_TOKEN.startswith('TEST-')
+
+# IDs de pagamento aprovados manualmente via botão de simulação (somente ambiente de teste)
+_SIMULATED_APPROVALS: set[int] = set()
+
 if not _MP_ACCESS_TOKEN:
     print('[MP] AVISO: MERCADO_PAGO_ACCESS_TOKEN não encontrado no .env!')
 
@@ -54,13 +62,21 @@ def criar_pagamento_pix(valor: float, descricao: str, telefone: str = '') -> dic
         'status': data['status'],
         'qr_code': tx_data.get('qr_code'),
         'qr_code_base64': tx_data.get('qr_code_base64'),
-        'ticket_url': tx_data.get('ticket_url'),  # link de simulação (só existe em pagamentos de TESTE)
+        'ticket_url': tx_data.get('ticket_url'),
         'valor': round(float(valor), 2),
+        'is_test': MP_IS_TEST,
     }
 
 
 def consultar_pagamento(payment_id: int) -> dict:
     """Consulta o status de um pagamento no Mercado Pago."""
+    if payment_id in _SIMULATED_APPROVALS:
+        return {
+            'payment_id': payment_id,
+            'status': 'approved',
+            'status_detail': 'simulated_approval',
+        }
+
     headers = {'Authorization': f'Bearer {_MP_ACCESS_TOKEN}'}
     resp = requests.get(
         f'{_MP_API_BASE}/v1/payments/{payment_id}',
@@ -74,3 +90,13 @@ def consultar_pagamento(payment_id: int) -> dict:
         'status': data['status'],
         'status_detail': data.get('status_detail'),
     }
+
+
+def simular_aprovacao(payment_id: int) -> None:
+    """Marca um pagamento de TESTE como aprovado localmente.
+
+    O sandbox do Mercado Pago não tem mecanismo real pra aprovar um PIX,
+    então essa função só serve pra validar o fluxo de UI (mensagem de
+    confirmação + liberação do pedido) durante o desenvolvimento.
+    """
+    _SIMULATED_APPROVALS.add(int(payment_id))

@@ -9,7 +9,7 @@ from flask import Flask, jsonify, request, send_from_directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.agent_service import EspetariaAgent
 from src.database import get_cliente, init_db, save_pedido, get_pedidos_pendentes, atualizar_status_pedido
-from src.payment import criar_pagamento_pix, consultar_pagamento
+from src.payment import criar_pagamento_pix, consultar_pagamento, simular_aprovacao, MP_IS_TEST
 
 app = Flask(__name__, static_folder='static')
 
@@ -249,6 +249,14 @@ def status_pagamento(payment_id):
     except Exception as e:
         print(f'[MP] Erro ao consultar pagamento {payment_id}: {e}')
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/pagamento/simular/<int:payment_id>', methods=['POST'])
+def simular_pagamento(payment_id):
+    if not MP_IS_TEST:
+        return jsonify({'error': 'Simulação só disponível com token de TESTE'}), 403
+    simular_aprovacao(payment_id)
+    return jsonify({'ok': True})
 
 
 @app.route('/api/pagamento/webhook', methods=['POST'])
