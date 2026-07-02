@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Apresentação: Espetaria do Chef</title>
+
+    <!-- Reveal.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css">
+    <!-- Tema Dark Moderno base do Reveal -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/night.min.css" id="theme">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* Estilos Customizados - Vibe IA / Tech */
+        .reveal {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0f0f1a 100%);
+        }
+        
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            font-family: 'Outfit', sans-serif;
+            text-transform: none;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .reveal h1 {
+            font-size: 2.8em;
+            background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .reveal h2 {
+            font-size: 2em;
+            color: #4facfe;
+            margin-bottom: 40px;
+        }
+
+        .glass-box {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .reveal ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .reveal li {
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            position: relative;
+            padding-left: 55px; /* Aumentado para dar mais espaço */
+            text-align: left;
+        }
+
+        .reveal li i {
+            position: absolute;
+            left: 10px; /* Posicionado mais à esquerda */
+            top: 6px;
+            color: #00f2fe;
+            font-size: 0.9em;
+        }
+
+        .author-box {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-top: 50px;
+            font-size: 0.7em;
+            color: #a0a0b0;
+        }
+
+        .author-box i {
+            color: #4facfe;
+            margin-right: 8px;
+        }
+
+        .highlight {
+            color: #00f2fe;
+            font-weight: 600;
+        }
+        
+        .arch-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .arch-box {
+            text-align: center;
+            font-size: 0.7em;
+            flex: 1;
+        }
+
+        .arch-box i {
+            font-size: 3em;
+            color: #4facfe;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .arch-arrow {
+            color: #a0a0b0;
+            font-size: 2em;
+        }
+        
+        /* Ajuste de logo */
+        .tech-logos {
+            font-size: 1.5em;
+            margin-top: 20px;
+            color: #a0a0b0;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        /* Particles effect bg */
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Fundo de Partículas para dar o "Show" -->
+    <div id="particles-js"></div>
+
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- SLIDE 1: Capa -->
+            <section>
+                <div style="font-size: 3em; margin-bottom: 20px; color: #4facfe;">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <h1>Espetaria do Chef</h1>
+                <h3>Agente Inteligente de Atendimento</h3>
+                <p style="font-size: 0.7em; color: #a0a0b0; margin-top: 30px;">
+                    Disciplina: Inteligência Artificial
+                </p>
+                <div class="author-box">
+                    <div><i class="fa-solid fa-user"></i> Matheus</div>
+                    <div><i class="fa-solid fa-user"></i> Harry</div>
+                </div>
+            </section>
+
+            <!-- SLIDE 2: Problema -->
+            <section>
+                <h2><i class="fa-solid fa-triangle-exclamation"></i> O Problema</h2>
+                <div class="glass-box">
+                    <ul>
+                        <li><i class="fa-brands fa-whatsapp"></i> <strong>Lentidão no WhatsApp:</strong> Dificuldade humana de focar em atendimento e preparo nos horários de pico.</li>
+                        <li><i class="fa-solid fa-robot"></i> <strong>Chatbots Frustrantes:</strong> Menus numéricos (digite 1, 2) são engessados e irritam clientes.</li>
+                        <li><i class="fa-solid fa-clipboard-list"></i> <strong>Perda de Dados:</strong> Pedidos esquecidos ou mal anotados geram prejuízos.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SLIDE 3: Objetivo -->
+            <section>
+                <h2><i class="fa-solid fa-bullseye"></i> Objetivo da Solução</h2>
+                <div class="glass-box">
+                    <p style="text-align: left; font-size: 0.9em; line-height: 1.5;">
+                        Substituir o menu estático por um <span class="highlight">Agente Conversacional com IA Generativa</span>, capaz de atuar de ponta a ponta:
+                    </p>
+                    <ul style="margin-top: 20px;">
+                        <li><i class="fa-solid fa-check"></i> Interação humana e natural</li>
+                        <li><i class="fa-solid fa-check"></i> Gestão de pagamentos integrada (PIX e Dinheiro)</li>
+                        <li><i class="fa-solid fa-check"></i> Integração ao vivo com painel da cozinha</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SLIDE 4: IA Utilizada -->
+            <section>
+                <h2><i class="fa-solid fa-brain"></i> A Inteligência Artificial</h2>
+                <div class="glass-box">
+                    <ul>
+                        <li><i class="fa-solid fa-microchip"></i> <strong>Modelo:</strong> API do Google Gemini (gemini-3.1-flash-lite)</li>
+                        <li><i class="fa-solid fa-terminal"></i> <strong>Engenharia de Prompt:</strong> Instruções restritas limitando a IA estritamente ao cardápio e fluxo da espetaria.</li>
+                        <li><i class="fa-solid fa-code"></i> <strong>Extração de JSON:</strong> Uso da IA não apenas para conversar, mas para estruturar o pedido final em formato JSON legível pelo sistema.</li>
+                    </ul>
+                </div>
+                <div class="tech-logos">
+                    <i class="fa-brands fa-google"></i>
+                    <i class="fa-brands fa-python"></i>
+                </div>
+            </section>
+
+            <!-- SLIDE 5: Arquitetura -->
+            <section>
+                <h2><i class="fa-solid fa-network-wired"></i> Arquitetura do Sistema</h2>
+                
+                <div class="arch-diagram">
+                    <div class="arch-box">
+                        <i class="fa-solid fa-mobile-screen"></i>
+                        Interface<br>Cliente Web
+                    </div>
+                    <div class="arch-arrow"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+                    <div class="arch-box">
+                        <i class="fa-brands fa-python"></i>
+                        Servidor Flask<br>MySQL DB
+                    </div>
+                    <div class="arch-arrow"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+                    <div class="arch-box">
+                        <i class="fa-solid fa-cloud"></i>
+                        Google Gemini<br>& Mercado Pago
+                    </div>
+                </div>
+                <div style="font-size: 0.6em; margin-top: 20px; color: #a0a0b0;">
+                    <em>A IA recebe o histórico de compras do banco (MySQL) como contexto para humanizar o atendimento.</em>
+                </div>
+            </section>
+
+            <!-- SLIDE 6: Demonstração -->
+            <section data-background-color="#000000">
+                <h2><i class="fa-solid fa-play"></i> Demonstração Prática</h2>
+                <div style="font-size: 4em; color: #4facfe; margin-top: 40px; animation: pulse 2s infinite;">
+                    <i class="fa-solid fa-laptop-code"></i>
+                </div>
+                <style>
+                    @keyframes pulse {
+                        0% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.1); opacity: 0.7; }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+                </style>
+            </section>
+
+            <!-- SLIDE 7: Resultados -->
+            <section>
+                <h2><i class="fa-solid fa-chart-line"></i> Resultados Obtidos</h2>
+                <div class="glass-box">
+                    <ul>
+                        <li><i class="fa-solid fa-star"></i> <strong>Compreensão Alta:</strong> A IA lida com mudanças de intenção e frases ambíguas sem travar (ex: "quero 2 não pera, tira 1 e põe suco").</li>
+                        <li><i class="fa-solid fa-bolt"></i> <strong>Automação 100%:</strong> Desde o "Olá" até o QR Code do PIX e tela da cozinha, sem cliques manuais na retaguarda.</li>
+                        <li><i class="fa-solid fa-database"></i> <strong>Extração Estruturada:</strong> A conversão de texto livre para JSON validável funcionou com sucesso de forma contínua.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SLIDE 8: Conclusões -->
+            <section>
+                <h2><i class="fa-solid fa-lightbulb"></i> Conclusões</h2>
+                <div class="glass-box">
+                    <p style="text-align: left; font-size: 0.9em; line-height: 1.5;">
+                        <span class="highlight">IA Generativa = Motor Lógico.</span> 
+                        <br><br>
+                        O sucesso não depende apenas do modelo de linguagem em si, mas da <strong>Engenharia de Prompt</strong> rigorosa e da orquestração do back-end para injetar contextos ricos (banco de dados) nas interações. Isso transforma um "chat genérico" numa robusta ferramenta comercial.
+                    </p>
+                </div>
+            </section>
+
+            <!-- SLIDE 9: Trabalhos Futuros -->
+            <section>
+                <h2><i class="fa-solid fa-rocket"></i> Trabalhos Futuros</h2>
+                <div class="glass-box">
+                    <ul>
+                        <li><i class="fa-brands fa-whatsapp"></i> Integração com API nativa do WhatsApp (Twilio/Baileys).</li>
+                        <li><i class="fa-solid fa-chart-pie"></i> Criação de Dashboards Analíticos para gestão de negócio.</li>
+                        <li><i class="fa-solid fa-microphone"></i> Implementação de Speech-to-Text para atendimento via áudio.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SLIDE 10: Encerramento -->
+            <section>
+                <h1>Obrigado!</h1>
+                <p style="font-size: 0.8em; margin-bottom: 40px; color: #a0a0b0;">
+                    Código aberto disponível no GitHub.
+                </p>
+                <div style="font-size: 3em; color: #4facfe;">
+                    <i class="fa-brands fa-github"></i>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Reveal.js Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.js"></script>
+    <!-- Particles.js (Efeito Matrix/Pontos) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+
+    <script>
+        // Inicializa o Reveal.js
+        Reveal.initialize({
+            controls: true,
+            progress: true,
+            center: true,
+            hash: true,
+            transition: 'convex', // convex, concave, zoom, fade, slide
+            backgroundTransition: 'fade'
+        });
+
+        // Configuração simples e elegante de partículas
+        particlesJS('particles-js', {
+          "particles": {
+            "number": { "value": 60, "density": { "enable": true, "value_area": 800 } },
+            "color": { "value": "#4facfe" },
+            "shape": { "type": "circle" },
+            "opacity": { "value": 0.3, "random": false },
+            "size": { "value": 3, "random": true },
+            "line_linked": {
+              "enable": true,
+              "distance": 150,
+              "color": "#00f2fe",
+              "opacity": 0.2,
+              "width": 1
+            },
+            "move": {
+              "enable": true,
+              "speed": 1.5,
+              "direction": "none",
+              "random": false,
+              "straight": false,
+              "out_mode": "out",
+              "bounce": false
+            }
+          },
+          "interactivity": {
+            "detect_on": "canvas",
+            "events": {
+              "onhover": { "enable": true, "mode": "grab" },
+              "onclick": { "enable": true, "mode": "push" },
+              "resize": true
+            },
+            "modes": {
+              "grab": { "distance": 200, "line_linked": { "opacity": 0.5 } },
+              "push": { "particles_nb": 4 }
+            }
+          },
+          "retina_detect": true
+        });
+    </script>
+</body>
+</html>
